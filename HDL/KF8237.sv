@@ -85,5 +85,38 @@ module KF8237 (
     );
 
 
+    //
+    // Priority Encoder And Rotating Priority Logic
+    //
+    logic   [1:0]   dma_rotate;
+    logic   [3:0]   encoded_dma;
+    logic           end_of_process;
+    logic   [3:0]   dma_acknowledge_internal;
+
+    KF8237_Priority_Encoder u_Priority_Encoder (
+        .clock                              (clock),
+        .reset                              (reset),
+
+        // Internal Bus
+        .internal_data_bus                  (internal_data_bus),
+        // -- write
+        .write_command_register             (write_command_register),
+        .write_request_register             (write_request_register),
+        .set_or_reset_mask_register         (set_or_reset_mask_register),
+        .write_mask_register                (write_mask_register),
+        // -- software command
+        .master_clear                       (master_clear),
+        .clear_mask_register                (clear_mask_register),
+
+        // Internal signals
+        .dma_rotate                         (dma_rotate),
+        .encoded_dma                        (encoded_dma),
+        .end_of_process                     (end_of_process),
+        .dma_acknowledge_internal           (dma_acknowledge_internal),
+
+        // External signals
+        .dma_request                        (dma_request)
+    );
+
 endmodule
 
