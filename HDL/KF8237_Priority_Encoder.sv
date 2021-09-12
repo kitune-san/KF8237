@@ -23,6 +23,7 @@ module KF8237_Priority_Encoder (
 
     // Internal signals
     input   logic   [1:0]   dma_rotate,
+    input   logic   [3:0]   edge_request,
     output  logic   [3:0]   encoded_dma,
     input   logic           end_of_process,
     input   logic   [3:0]   dma_acknowledge_internal,
@@ -40,6 +41,7 @@ module KF8237_Priority_Encoder (
     logic           dreq_sense_active_low;
     logic   [3:0]   mask_register;
     logic   [3:0]   request_register;
+    logic   [3:0]   dma_request_lock;
 
     //
     // Command Register
@@ -120,10 +122,34 @@ module KF8237_Priority_Encoder (
     endgenerate
 
     //
+    // Edge sense
+    //
+    genvar req_lock_bit_i;
+    generate
+    for (req_lock_bit_i = 0; req_lock_bit_i < 4; req_lock_bit_i = req_lock_bit_i + 1) begin : REQUEST_LCOK
+        always_ff @(negedge clock, posedge reset) begin
+            if (reset)
+                dma_request_lock[req_lock_bit_i] <= 1'b0;
+            else if ((master_clear) || (clear_mask_register))
+                dma_request_lock[req_lock_bit_i] <= 1'b0;
+            else if (~edge_request[req_lock_bit_i])
+                dma_request_lock[req_lock_bit_i] <= 1'b0;
+            else if (encoded_dma[req_lock_bit_i]  &  dma_acknowledge_internal[req_lock_bit_i])
+                dma_request_lock[req_lock_bit_i] <= 1'b1;
+            else if (~dma_request[req_lock_bit_i] & ~dma_acknowledge_internal[req_lock_bit_i])
+                dma_request_lock[req_lock_bit_i] <= 1'b0;
+            else
+                dma_request_lock[req_lock_bit_i] <= dma_request_lock[req_lock_bit_i];
+        end
+    end
+    endgenerate
+
+    //
     // DMA Request
     //
     always_comb begin
         encoded_dma = dreq_sense_active_low ? ~dma_request : dma_request;
+        encoded_dma = encoded_dma & ~dma_request_lock;
         encoded_dma = encoded_dma & ~mask_register;
         encoded_dma = encoded_dma | request_register;
         encoded_dma = rotating_priority ? rotate_right(encoded_dma, dma_rotate) : encoded_dma;
