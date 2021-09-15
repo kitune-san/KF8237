@@ -120,5 +120,42 @@ module KF8237 (
         .dma_request                        (dma_request)
     );
 
+
+    //
+    // Address And Count Registers
+    //
+    logic   [7:0]   read_address_or_count;
+    logic           initialize_current_register;
+    logic           decrement_address_config;
+    logic           next_word;
+    logic           underflow;
+    logic   [15:0]  transfer_address;
+
+    KF8237_Address_And_Count_Registers u_Address_And_Count_Registers (
+        .clock                              (clock),
+        .reset                              (reset),
+
+        // Internal Bus
+        .internal_data_bus                  (internal_data_bus),
+        .read_address_or_count              (read_address_or_count),
+        // -- write
+        .write_base_and_current_address     (write_base_and_current_address),
+        .write_base_and_current_word_count  (write_base_and_current_word_count),
+        // -- software command
+        .clear_byte_pointer                 (clear_byte_pointer),
+        .master_clear                       (master_clear),
+        // -- read
+        .read_current_address               (read_current_address),
+        .read_current_word_count            (read_current_word_count),
+
+        // Internal signals
+        .dma_acknowledge_internal           (dma_acknowledge_internal),
+        .initialize_current_register        (initialize_current_register),
+        .decrement_address_config           (decrement_address_config),
+        .next_word                          (next_word),
+        .underflow                          (underflow),
+        .transfer_address                   (transfer_address)
+    );
+
 endmodule
 
