@@ -25,7 +25,7 @@ module KF8237_Address_And_Count_Registers (
     input   logic   [3:0]   read_current_word_count,
 
     // Internal signals
-    input   logic   [3:0]   dma_acknowledge_internal,
+    input   logic   [3:0]   transfer_register_select,
     input   logic           initialize_current_register,
     input   logic           decrement_address_config,
     input   logic           next_word,
@@ -134,9 +134,9 @@ module KF8237_Address_And_Count_Registers (
                     current_address[dma_ch_i][7:0]  <= internal_data_bus;
                 else
                     current_address[dma_ch_i][15:8] <= internal_data_bus;
-            else if ((dma_acknowledge_internal[dma_ch_i]) && (initialize_current_register))
+            else if ((transfer_register_select[dma_ch_i]) && (initialize_current_register))
                 current_address[dma_ch_i] <= 16'h00;
-            else if ((dma_acknowledge_internal[dma_ch_i]) && (next_word))
+            else if ((transfer_register_select[dma_ch_i]) && (next_word))
                 current_address[dma_ch_i] <= temporary_address;
             else
                 current_address[dma_ch_i] <= current_address[dma_ch_i];
@@ -155,9 +155,9 @@ module KF8237_Address_And_Count_Registers (
                     current_word_count[dma_ch_i][7:0]  <= internal_data_bus;
                 else
                     current_word_count[dma_ch_i][15:8] <= internal_data_bus;
-            else if ((dma_acknowledge_internal[dma_ch_i]) && (initialize_current_register))
+            else if ((transfer_register_select[dma_ch_i]) && (initialize_current_register))
                 current_word_count[dma_ch_i] <= 16'h00;
-            else if ((dma_acknowledge_internal[dma_ch_i]) && (next_word))
+            else if ((transfer_register_select[dma_ch_i]) && (next_word))
                 current_word_count[dma_ch_i] <= temporary_word_count;
             else
                 current_word_count[dma_ch_i] <= current_word_count[dma_ch_i];
@@ -169,7 +169,7 @@ module KF8237_Address_And_Count_Registers (
     //
     // Selects DMA CH
     //
-    wire    [1:0]   dma_select = bit2num(dma_acknowledge_internal);
+    wire    [1:0]   dma_select = bit2num(transfer_register_select);
 
     //
     // Temp Address Register  (Transfer Addres)

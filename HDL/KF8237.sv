@@ -125,6 +125,7 @@ module KF8237 (
     // Address And Count Registers
     //
     logic   [7:0]   read_address_or_count;
+    logic   [3:0]   transfer_register_select;
     logic           initialize_current_register;
     logic           decrement_address_config;
     logic           next_word;
@@ -149,7 +150,7 @@ module KF8237 (
         .read_current_word_count            (read_current_word_count),
 
         // Internal signals
-        .dma_acknowledge_internal           (dma_acknowledge_internal),
+        .transfer_register_select           (transfer_register_select),
         .initialize_current_register        (initialize_current_register),
         .decrement_address_config           (decrement_address_config),
         .next_word                          (next_word),
