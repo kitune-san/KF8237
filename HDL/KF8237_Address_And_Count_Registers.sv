@@ -135,7 +135,7 @@ module KF8237_Address_And_Count_Registers (
                 else
                     current_address[dma_ch_i][15:8] <= internal_data_bus;
             else if ((transfer_register_select[dma_ch_i]) && (initialize_current_register))
-                current_address[dma_ch_i] <= 16'h00;
+                current_address[dma_ch_i] <= base_address[dma_ch_i];
             else if ((transfer_register_select[dma_ch_i]) && (next_word))
                 current_address[dma_ch_i] <= temporary_address;
             else
@@ -156,7 +156,7 @@ module KF8237_Address_And_Count_Registers (
                 else
                     current_word_count[dma_ch_i][15:8] <= internal_data_bus;
             else if ((transfer_register_select[dma_ch_i]) && (initialize_current_register))
-                current_word_count[dma_ch_i] <= 16'h00;
+                current_word_count[dma_ch_i] <= base_word_count[dma_ch_i];
             else if ((transfer_register_select[dma_ch_i]) && (next_word))
                 current_word_count[dma_ch_i] <= temporary_word_count;
             else
