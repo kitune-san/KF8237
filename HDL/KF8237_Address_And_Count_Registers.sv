@@ -197,12 +197,7 @@ module KF8237_Address_And_Count_Registers (
     //
     // Detects Underflow of Word Count
     //
-    always_ff @(negedge clock, posedge reset) begin
-        if (reset)
-            underflow <= 1'b0;
-        else
-            underflow <= ~temporary_word_count[16];
-    end
+    assign  underflow = ~temporary_word_count[16];
 
     //
     // Reads Registers
