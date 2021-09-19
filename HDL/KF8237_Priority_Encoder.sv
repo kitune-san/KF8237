@@ -25,7 +25,7 @@ module KF8237_Priority_Encoder (
     input   logic   [1:0]   dma_rotate,
     input   logic   [3:0]   edge_request,
     output  logic   [3:0]   encoded_dma,
-    input   logic           end_of_process,
+    input   logic           end_of_process_internal,
     input   logic   [3:0]   dma_acknowledge_internal,
 
     // External signals
@@ -113,7 +113,7 @@ module KF8237_Priority_Encoder (
                 request_register[req_reg_bit_i] <= 1'b0;
             else if ((write_request_register) && (internal_data_bus[1:0] == bit_select[req_reg_bit_i]))
                 request_register[req_reg_bit_i] <= internal_data_bus[2];
-            else if ((end_of_process) && (dma_acknowledge_internal[req_reg_bit_i]))
+            else if ((end_of_process_internal) && (dma_acknowledge_internal[req_reg_bit_i]))
                 request_register[req_reg_bit_i] <= 1'b0;
             else
                 request_register[req_reg_bit_i] <= request_register[req_reg_bit_i];

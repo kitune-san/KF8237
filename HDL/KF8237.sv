@@ -91,7 +91,7 @@ module KF8237 (
     logic   [1:0]   dma_rotate;
     logic   [3:0]   edge_request;
     logic   [3:0]   encoded_dma;
-    logic           end_of_process;
+    logic           end_of_process_internal;
     logic   [3:0]   dma_acknowledge_internal;
 
     KF8237_Priority_Encoder u_Priority_Encoder (
@@ -113,7 +113,7 @@ module KF8237 (
         .dma_rotate                         (dma_rotate),
         .edge_request                       (edge_request),
         .encoded_dma                        (encoded_dma),
-        .end_of_process                     (end_of_process),
+        .end_of_process_internal            (end_of_process_internal),
         .dma_acknowledge_internal           (dma_acknowledge_internal),
 
         // External signals
