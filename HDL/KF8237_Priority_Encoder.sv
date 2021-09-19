@@ -41,6 +41,7 @@ module KF8237_Priority_Encoder (
     logic           dreq_sense_active_low;
     logic   [3:0]   mask_register;
     logic   [3:0]   request_register;
+    logic   [3:0]   dma_request_ff;
     logic   [3:0]   dma_request_lock;
 
     //
@@ -122,6 +123,18 @@ module KF8237_Priority_Encoder (
     endgenerate
 
     //
+    // Latch DMA Request
+    //
+    always_ff @(negedge clock, posedge reset) begin
+        if (reset)
+            dma_request_ff <= 0;
+        else if (master_clear)
+            dma_request_ff <= 0;
+        else
+            dma_request_ff <= dreq_sense_active_low ? ~dma_request : dma_request;
+    end
+
+    //
     // Edge sense
     //
     genvar req_lock_bit_i;
@@ -136,7 +149,7 @@ module KF8237_Priority_Encoder (
                 dma_request_lock[req_lock_bit_i] <= 1'b0;
             else if (encoded_dma[req_lock_bit_i]  &  dma_acknowledge_internal[req_lock_bit_i])
                 dma_request_lock[req_lock_bit_i] <= 1'b1;
-            else if (~dma_request[req_lock_bit_i] & ~dma_acknowledge_internal[req_lock_bit_i])
+            else if (~dma_request_ff[req_lock_bit_i] & ~dma_acknowledge_internal[req_lock_bit_i])
                 dma_request_lock[req_lock_bit_i] <= 1'b0;
             else
                 dma_request_lock[req_lock_bit_i] <= dma_request_lock[req_lock_bit_i];
@@ -148,7 +161,7 @@ module KF8237_Priority_Encoder (
     // DMA Request
     //
     always_comb begin
-        encoded_dma = dreq_sense_active_low ? ~dma_request : dma_request;
+        encoded_dma = dma_request_ff;
         encoded_dma = encoded_dma & ~dma_request_lock;
         encoded_dma = encoded_dma & ~mask_register;
         encoded_dma = encoded_dma | request_register;
