@@ -24,6 +24,7 @@ module KF8237_Priority_Encoder (
     // Internal signals
     input   logic   [1:0]   dma_rotate,
     input   logic   [3:0]   edge_request,
+    output  logic   [3:0]   dma_request_state,
     output  logic   [3:0]   encoded_dma,
     input   logic           end_of_process_internal,
     input   logic   [3:0]   dma_acknowledge_internal,
@@ -161,14 +162,15 @@ module KF8237_Priority_Encoder (
     // DMA Request
     //
     always_comb begin
-        encoded_dma = dma_request_ff;
-        encoded_dma = encoded_dma & ~dma_request_lock;
-        encoded_dma = encoded_dma & ~mask_register;
-        encoded_dma = encoded_dma | request_register;
-        encoded_dma = rotating_priority ? rotate_right(encoded_dma, dma_rotate) : encoded_dma;
-        encoded_dma = resolv_priority(encoded_dma);
-        encoded_dma = rotating_priority ? rotate_left(encoded_dma, dma_rotate) : encoded_dma;
-        encoded_dma = controller_disable ? 4'b000 : encoded_dma;
+        dma_request_state   = dma_request_ff;
+        dma_request_state   = dma_request_state & ~dma_request_lock;
+        dma_request_state   = dma_request_state & ~mask_register;
+        dma_request_state   = dma_request_state | request_register;
+        encoded_dma         = dma_request_state;
+        encoded_dma         = rotating_priority ? rotate_right(encoded_dma, dma_rotate) : encoded_dma;
+        encoded_dma         = resolv_priority(encoded_dma);
+        encoded_dma         = rotating_priority ? rotate_left(encoded_dma, dma_rotate) : encoded_dma;
+        encoded_dma         = controller_disable ? 4'b000 : encoded_dma;
     end
 
 endmodule

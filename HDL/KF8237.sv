@@ -90,6 +90,7 @@ module KF8237 (
     //
     logic   [1:0]   dma_rotate;
     logic   [3:0]   edge_request;
+    logic   [3:0]   dma_request_state;
     logic   [3:0]   encoded_dma;
     logic           end_of_process_internal;
     logic   [3:0]   dma_acknowledge_internal;
@@ -112,6 +113,7 @@ module KF8237 (
         // Internal signals
         .dma_rotate                         (dma_rotate),
         .edge_request                       (edge_request),
+        .dma_request_state                  (dma_request_state),
         .encoded_dma                        (encoded_dma),
         .end_of_process_internal            (end_of_process_internal),
         .dma_acknowledge_internal           (dma_acknowledge_internal),
