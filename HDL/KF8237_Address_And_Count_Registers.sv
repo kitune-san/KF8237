@@ -160,7 +160,7 @@ module KF8237_Address_And_Count_Registers (
             else if ((transfer_register_select[dma_ch_i]) && (initialize_current_register))
                 current_word_count[dma_ch_i] <= base_word_count[dma_ch_i];
             else if ((transfer_register_select[dma_ch_i]) && (next_word))
-                current_word_count[dma_ch_i] <= temporary_word_count;
+                current_word_count[dma_ch_i] <= temporary_word_count[15:0];
             else
                 current_word_count[dma_ch_i] <= current_word_count[dma_ch_i];
         end
