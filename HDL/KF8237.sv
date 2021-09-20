@@ -127,8 +127,10 @@ module KF8237 (
     logic   [7:0]   read_address_or_count;
     logic   [3:0]   transfer_register_select;
     logic           initialize_current_register;
+    logic           address_hold_config;
     logic           decrement_address_config;
     logic           next_word;
+    logic           update_high_address;
     logic           underflow;
     logic   [15:0]  transfer_address;
 
@@ -152,8 +154,10 @@ module KF8237 (
         // Internal signals
         .transfer_register_select           (transfer_register_select),
         .initialize_current_register        (initialize_current_register),
+        .address_hold_config                (address_hold_config),
         .decrement_address_config           (decrement_address_config),
         .next_word                          (next_word),
+        .update_high_address                (update_high_address),
         .underflow                          (underflow),
         .transfer_address                   (transfer_address)
     );

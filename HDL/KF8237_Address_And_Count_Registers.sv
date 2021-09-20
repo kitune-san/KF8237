@@ -27,9 +27,11 @@ module KF8237_Address_And_Count_Registers (
     // Internal signals
     input   logic   [3:0]   transfer_register_select,
     input   logic           initialize_current_register,
+    input   logic           address_hold_config,
     input   logic           decrement_address_config,
     input   logic           next_word,
     output  logic           underflow,
+    output  logic           update_high_address,
     output  logic   [15:0]  transfer_address
 );
     import KF8237_Common_Package::bit2num;
@@ -179,7 +181,9 @@ module KF8237_Address_And_Count_Registers (
     always_comb begin
         temporary_address = transfer_address;
         if (next_word)
-            if (decrement_address_config)
+            if (address_hold_config)
+                temporary_address = temporary_address;
+            else if (decrement_address_config)
                 temporary_address = temporary_address - 16'h01;
             else
                 temporary_address = temporary_address + 16'h01;
@@ -198,6 +202,11 @@ module KF8237_Address_And_Count_Registers (
     // Detects Underflow of Word Count
     //
     assign  underflow = ~temporary_word_count[16];
+
+    //
+    // Detects To Update Address[15-8]
+    //
+    assign  update_high_address = (next_word) ? (transfer_address[8] != temporary_address[8]) : 1'b0;
 
     //
     // Reads Registers
