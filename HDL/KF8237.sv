@@ -16,12 +16,15 @@ module KF8237 (
     output  logic   [7:0]   data_bus_out,
     input   logic           io_read_n_in,
     output  logic           io_read_n_out,
+    output  logic           io_read_n_io,
     input   logic           io_write_n_in,
     output  logic           io_write_n_out,
-    input   logic           end_of_process_in,
-    output  logic           end_of_process_out,
+    output  logic           io_write_n_io,
+    input   logic           end_of_process_n_in,
+    output  logic           end_of_process_n_out,
     input   logic   [3:0]   address_in,
-    input   logic   [15:0]  address_out,
+    output  logic   [15:0]  address_out,
+    output  logic           output_highst_address,
     output  logic           hold_request,
     output  logic   [3:0]   dma_acknowledge,
     output  logic           address_enable,
@@ -134,7 +137,6 @@ module KF8237 (
     logic           next_word;
     logic           update_high_address;
     logic           underflow;
-    logic   [15:0]  transfer_address;
 
     KF8237_Address_And_Count_Registers u_Address_And_Count_Registers (
         .clock                              (clock),
@@ -161,8 +163,84 @@ module KF8237 (
         .next_word                          (next_word),
         .update_high_address                (update_high_address),
         .underflow                          (underflow),
-        .transfer_address                   (transfer_address)
+        .transfer_address                   (address_out)
     );
+
+
+    //
+    // Timing And Control Logic
+    //
+    logic           output_temporary_data;
+    logic   [7:0]   temporary_register;
+    logic   [3:0]   terminal_count_state;
+
+    KF8237_Timing_And_Control u_Timing_And_Control (
+        .clock                              (clock),
+        .reset                              (reset),
+
+        // Internal Bus
+        .internal_data_bus                  (internal_data_bus),
+        // -- write
+        .write_command_register             (write_command_register),
+        .write_mode_register                (write_mode_register),
+        // -- read
+        .read_status_register               (read_status_register),
+        // -- software command
+        .master_clear                       (master_clear),
+
+        // Internal signals
+        .dma_rotate                         (dma_rotate),
+        .edge_request                       (edge_request),
+        .dma_request_state                  (dma_request_state),
+        .encoded_dma                        (encoded_dma),
+        .dma_acknowledge_internal           (dma_acknowledge_internal),
+        .transfer_register_select           (transfer_register_select),
+        .initialize_current_register        (initialize_current_register),
+        .address_hold_config                (address_hold_config),
+        .decrement_address_config           (decrement_address_config),
+        .next_word                          (next_word),
+        .update_high_address                (update_high_address),
+        .underflow                          (underflow),
+        .end_of_process_internal            (end_of_process_internal),
+        .lock_bus_control                   (lock_bus_control),
+        .output_temporary_data              (output_temporary_data),
+        .temporary_register                 (temporary_register),
+        .terminal_count_state               (terminal_count_state),
+
+        // External signals
+        .hold_request                       (hold_request),
+        .hold_acknowledge                   (hold_acknowledge),
+        .dma_acknowledge                    (dma_acknowledge),
+        .address_enable                     (address_enable),
+        .address_strobe                     (address_strobe),
+        .output_highst_address              (output_highst_address),
+        .memory_read_n                      (memory_read_n),
+        .memory_write_n                     (memory_write_n),
+        .io_read_n_out                      (io_read_n_out),
+        .io_read_n_io                       (io_read_n_io),
+        .io_write_n_out                     (io_write_n_out),
+        .io_write_n_io                      (io_write_n_io),
+        .ready                              (ready),
+        .end_of_process_n_in                (end_of_process_n_in),
+        .end_of_process_n_out               (end_of_process_n_out)
+    );
+
+
+    //
+    // Data Bus Buffer & Read/Write Control Logic (2)
+    //
+    always_comb begin
+        if (output_highst_address)
+            data_bus_out = address_out[15:8];
+        else if ((read_temporary_register) || (output_temporary_data))
+            data_bus_out = temporary_register;
+        else if (read_status_register)
+            data_bus_out = {dma_request_state, terminal_count_state};
+        else if ((0 != read_current_address) || (0 != read_current_word_count))
+            data_bus_out = read_address_or_count;
+        else
+            data_bus_out = 8'h00;
+    end
 
 endmodule
 
