@@ -250,9 +250,9 @@ module KF8237_Timing_And_Control (
     //
     always_ff @(negedge clock, posedge reset) begin
         if (reset)
-            dma_rotate <= 0;
+            dma_rotate <= 2'd3;
         else if (master_clear)
-            dma_rotate <= 0;
+            dma_rotate <= 2'd3;
         else if (state == S0)
             dma_rotate <= dma_select;
         else
