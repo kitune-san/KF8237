@@ -72,9 +72,11 @@ module KF8237_Address_And_Count_Registers_tm();
     logic   [3:0]   read_current_word_count;
     logic   [3:0]   transfer_register_select;
     logic           initialize_current_register;
+    logic           address_hold_config;
     logic           decrement_address_config;
     logic           next_word;
     logic           underflow;
+    logic           update_high_address;
     logic   [15:0]  transfer_address;
 
 
@@ -95,6 +97,7 @@ module KF8237_Address_And_Count_Registers_tm();
         read_current_word_count             = 4'b0000;
         transfer_register_select            = 4'b0000;
         initialize_current_register         = 1'b0;
+        address_hold_config                 = 1'b0;
         decrement_address_config            = 1'b0;
         next_word                           = 1'b0;
         #(`TB_CYCLE * 12);
