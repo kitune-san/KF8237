@@ -287,12 +287,12 @@ module KF8237_Timing_And_Control (
             SI: begin
                 transfer_register_select    = 0;
                 initialize_current_register = 0;
-                lock_bus_control            = 0;
+                lock_bus_control            = 1'b0;
             end
             S0: begin
                 transfer_register_select    = dma_acknowledge_internal;
                 initialize_current_register = 0;
-                lock_bus_control            = 1'b1;
+                lock_bus_control            = 1'b0;
             end
             S1: begin
                 transfer_register_select    = dma_acknowledge_internal;
