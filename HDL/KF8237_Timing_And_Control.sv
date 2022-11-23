@@ -73,7 +73,7 @@ module KF8237_Timing_And_Control (
 
     state_t         state;
     state_t         next_state;
-    logic           ready_ff;
+    logic           next_s4
     logic   [1:0]   bit_select[4] = '{ 2'b00, 2'b01, 2'b10, 2'b11 };
     logic           memory_to_memory_enable;
     logic           chanel_0_address_hold_enable;
@@ -87,7 +87,6 @@ module KF8237_Timing_And_Control (
     logic   [1:0]   dma_select;
     logic   [3:0]   dma_acknowledge_ff;
     logic           terminal_count;
-    logic           terminal_count_internal;
     logic           reoutput_high_address;
     logic           external_end_of_process;
     logic           prev_read_status_register;
@@ -169,6 +168,7 @@ module KF8237_Timing_And_Control (
     //
     always_comb begin
         next_state = state;
+        next_s4    = 1'b0;
 
         casez (state)
             SI: begin
@@ -180,28 +180,37 @@ module KF8237_Timing_And_Control (
                     next_state = S1;
             end
             S1: begin
-                if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
+                if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE) begin
                     next_state = S4;
+                    next_s4    = 1'b1;
+                end
                 else
                     next_state = S2;
             end
             S2: begin
                 if (~compressed_timing)
                     next_state = S3;
-                else if ((ready_ff) || (transfer_type[dma_select] == `TRANSFER_TYPE_VERIFY))
-                    next_state = S4;
+                else if (transfer_type[dma_select] == `TRANSFER_TYPE_VERIFY) begin
+                    if (ready)
+                        next_state = S4;
+                    next_s4    = 1'b1;
+                end
                 else
                     next_state = SW;
             end
             S3: begin
-                if ((ready_ff) || (transfer_type[dma_select] == `TRANSFER_TYPE_VERIFY))
-                    next_state = S4;
+                if (transfer_type[dma_select] == `TRANSFER_TYPE_VERIFY) begin
+                    if (ready)
+                        next_state = S4;
+                    next_s4    = 1'b1;
+                end
                 else
                     next_state = SW;
             end
             SW: begin
-                if (ready_ff)
+                if (ready)
                     next_state = S4;
+                next_s4    = 1'b1;
             end
             S4: begin
                 if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
@@ -230,18 +239,6 @@ module KF8237_Timing_And_Control (
             state <= SI;
         else
             state <= next_state;
-    end
-
-    //
-    // Ready Signal
-    //
-    always_ff @(posedge clock, posedge reset) begin
-        if (reset)
-            ready_ff <= 1'b0;
-        else if (master_clear)
-            ready_ff <= 1'b0;
-        else
-            ready_ff <= ready;
     end
 
     //
@@ -512,9 +509,9 @@ module KF8237_Timing_And_Control (
     end
 
     //
-    // Update High Address Signal (NOTE:Posedge)
+    // Update High Address Signal
     //
-    always_ff @(posedge clock, posedge reset) begin
+    always_ff @(negedge clock, posedge reset) begin
         if (reset)
             reoutput_high_address <= 1'b0;
         else if (master_clear)
@@ -531,26 +528,16 @@ module KF8237_Timing_And_Control (
     // Terminal Count Signal (NOTE:Posedge)
     //
     always_ff @(posedge clock, posedge reset) begin
-        if (reset) begin
+        if (reset)
             terminal_count <= 1'b0;
-            terminal_count_internal <= 1'b0;
-        end
-        else if (master_clear) begin
+        else if (master_clear)
             terminal_count <= 1'b0;
-            terminal_count_internal <= 1'b0;
-        end
-        else if (state == S4) begin
+        else if (state == S4)
             terminal_count <= 1'b0;
-            terminal_count_internal <= 1'b0;
-        end
-        else if (next_word) begin
+        else if (next_word)
             terminal_count <= underflow;
-            terminal_count_internal <= underflow;
-        end
-        else begin
+        else 
             terminal_count <= terminal_count;
-            terminal_count_internal <= terminal_count_internal;
-        end
     end
 
     assign  end_of_process_n_out = ~terminal_count;
@@ -577,7 +564,7 @@ module KF8237_Timing_And_Control (
         else if (master_clear)
             end_of_process_internal <= 1'b0;
         else if (next_state == S4)
-            end_of_process_internal <= terminal_count_internal | external_end_of_process;
+            end_of_process_internal <= terminal_count | external_end_of_process;
         else
             end_of_process_internal <= 1'b0;
     end
