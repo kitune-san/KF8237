@@ -73,7 +73,7 @@ module KF8237_Timing_And_Control (
 
     state_t         state;
     state_t         next_state;
-    logic           next_s4
+    logic           next_s4;
     logic   [1:0]   bit_select[4] = '{ 2'b00, 2'b01, 2'b10, 2'b11 };
     logic           memory_to_memory_enable;
     logic           chanel_0_address_hold_enable;
