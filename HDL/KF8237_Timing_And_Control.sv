@@ -18,6 +18,8 @@
 
 module KF8237_Timing_And_Control (
     input   logic           clock,
+    input   logic           clock_p_en,
+    input   logic           clock_n_en,
     input   logic           reset,
 
     // Internal Bus
@@ -91,10 +93,11 @@ module KF8237_Timing_And_Control (
     logic           external_end_of_process;
     logic           prev_read_status_register;
 
+
     //
     // Command Register
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset) begin
             memory_to_memory_enable         <= 1'b0;
             chanel_0_address_hold_enable    <= 1'b0;
@@ -131,7 +134,7 @@ module KF8237_Timing_And_Control (
     genvar mode_reg_bit_i;
     generate
     for (mode_reg_bit_i = 0; mode_reg_bit_i < 4; mode_reg_bit_i = mode_reg_bit_i + 1) begin : MODE_REGISTERS
-        always_ff @(negedge clock, posedge reset) begin
+        always_ff @(posedge clock, posedge reset) begin
             if (reset) begin
                 transfer_type[mode_reg_bit_i]               <= 2'b00;
                 autoinitialization_enable[mode_reg_bit_i]   <= 1'b0;
@@ -232,19 +235,21 @@ module KF8237_Timing_And_Control (
         endcase
     end
 
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             state <= SI;
         else if (master_clear)
             state <= SI;
-        else
+        else if (clock_n_en)
             state <= next_state;
+        else
+            state <= state;
     end
 
     //
     // Sample DREQn Line
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             dma_acknowledge_internal <= 0;
         else if (master_clear)
@@ -260,7 +265,7 @@ module KF8237_Timing_And_Control (
     //
     // DMA Rotate
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             dma_rotate <= 2'd3;
         else if (master_clear)
@@ -325,83 +330,98 @@ module KF8237_Timing_And_Control (
     end
 
     //
-    // Hold Request Signal (NOTE:Posedge)
+    // Hold Request Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             hold_request <= 1'b0;
         else if (master_clear)
             hold_request <= 1'b0;
-        else if (next_state == S0)
-            hold_request <= 1'b1;
-        else if (next_state == SI)
-            hold_request <= 1'b0;
+        else if (clock_p_en)
+            if (next_state == S0)
+                hold_request <= 1'b1;
+            else if (next_state == SI)
+                hold_request <= 1'b0;
+            else
+                hold_request <= hold_request;
         else
             hold_request <= hold_request;
     end
 
     //
-    // Address Enable Signal (NOTE:Posedge)
+    // Address Enable Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             address_enable <= 1'b0;
         else if (master_clear)
             address_enable <= 1'b0;
-        else if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
-            address_enable <= 1'b0;
-        else if (state == S1)
-            address_enable <= 1'b1;
-        else if (state == SI)
-            address_enable <= 1'b0;
+        else if (clock_p_en)
+            if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
+                address_enable <= 1'b0;
+            else if (state == S1)
+                address_enable <= 1'b1;
+            else if (state == SI)
+                address_enable <= 1'b0;
+            else
+                address_enable <= address_enable;
         else
             address_enable <= address_enable;
     end
 
     //
-    // Address Strobe Signal (NOTE:Posedge)
+    // Address Strobe Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             address_strobe <= 1'b0;
         else if (master_clear)
             address_strobe <= 1'b0;
-        else if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
-            address_strobe <= 1'b0;
-        else if (state == S1)
-            address_strobe <= 1'b1;
+        else if (clock_p_en)
+            if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
+                address_strobe <= 1'b0;
+            else if (state == S1)
+                address_strobe <= 1'b1;
+            else
+                address_strobe <= 1'b0;
         else
-            address_strobe <= 1'b0;
+            address_strobe <= address_strobe;
     end
 
     //
     // Output Highst Address On Data Bus Signal
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             output_highst_address <= 1'b0;
         else if (master_clear)
             output_highst_address <= 1'b0;
-        else if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
-            output_highst_address <= 1'b0;
-        else if ((state == S1) && (next_state == S2))
-            output_highst_address <= 1'b1;
+        else if (clock_n_en)
+            if (transfer_mode[dma_select] == `TRANSFER_MODE_CASCADE)
+                output_highst_address <= 1'b0;
+            else if ((state == S1) && (next_state == S2))
+                output_highst_address <= 1'b1;
+            else
+                output_highst_address <= 1'b0;
         else
-            output_highst_address <= 1'b0;
+            output_highst_address <= output_highst_address;
     end
 
     //
     // DMA Acknowledge Signal
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             dma_acknowledge_ff <= 0;
         else if (master_clear)
             dma_acknowledge_ff <= 0;
-        else if (next_state == S2)
-            dma_acknowledge_ff <= dma_acknowledge_internal;
-        else if (next_state == SI)
-            dma_acknowledge_ff <= 0;
+        else if (clock_n_en)
+            if (next_state == S2)
+                dma_acknowledge_ff <= dma_acknowledge_internal;
+            else if (next_state == SI)
+                dma_acknowledge_ff <= 0;
+            else
+                dma_acknowledge_ff <= dma_acknowledge_ff;
         else
             dma_acknowledge_ff <= dma_acknowledge_ff;
     end
@@ -409,17 +429,20 @@ module KF8237_Timing_And_Control (
     assign  dma_acknowledge = (dack_sense_active_high) ? dma_acknowledge_ff : ~dma_acknowledge_ff;
 
     //
-    // IO Read Signal (NOTE:Posedge)
+    // IO Read Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             io_read_n_io <= 1'b1;
         else if (master_clear)
             io_read_n_io <= 1'b1;
-        else if ((state == S1) && (transfer_type[dma_select] == `TRANSFER_TYPE_WRITE))
-            io_read_n_io <= 1'b0;
-        else if (state == SI)
-            io_read_n_io <= 1'b1;
+        else if (clock_p_en)
+            if ((state == S1) && (transfer_type[dma_select] == `TRANSFER_TYPE_WRITE))
+                io_read_n_io <= 1'b0;
+            else if (state == SI)
+                io_read_n_io <= 1'b1;
+            else
+                io_read_n_io <= io_read_n_io;
         else
             io_read_n_io <= io_read_n_io;
     end
@@ -429,42 +452,51 @@ module KF8237_Timing_And_Control (
             io_read_n_out <= 1'b1;
         else if (master_clear)
             io_read_n_out <= 1'b1;
-        else if ((state == S2) && (transfer_type[dma_select] == `TRANSFER_TYPE_WRITE))
-            io_read_n_out <= 1'b0;
-        else if (state == S4)
-            io_read_n_out <= 1'b1;
+        else if (clock_p_en)
+            if ((state == S2) && (transfer_type[dma_select] == `TRANSFER_TYPE_WRITE))
+                io_read_n_out <= 1'b0;
+            else if (state == S4)
+                io_read_n_out <= 1'b1;
+            else
+                io_read_n_out <= io_read_n_out;
         else
             io_read_n_out <= io_read_n_out;
     end
 
     //
-    // Memory Read Signal (NOTE:Posedge)
+    // Memory Read Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             memory_read_n <= 1'b1;
         else if (master_clear)
             memory_read_n <= 1'b1;
-        else if ((state == S2) && (transfer_type[dma_select] == `TRANSFER_TYPE_READ))
-            memory_read_n <= 1'b0;
-        else if (state == S4)
-            memory_read_n <= 1'b1;
+        else if (clock_p_en)
+            if ((state == S2) && (transfer_type[dma_select] == `TRANSFER_TYPE_READ))
+                memory_read_n <= 1'b0;
+            else if (state == S4)
+                memory_read_n <= 1'b1;
+            else
+                memory_read_n <= memory_read_n;
         else
             memory_read_n <= memory_read_n;
     end
 
     //
-    // IO Write Signal (NOTE:Posedge)
+    // IO Write Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             io_write_n_io <= 1'b1;
         else if (master_clear)
             io_write_n_io <= 1'b1;
-        else if ((state == S1) && (transfer_type[dma_select] == `TRANSFER_TYPE_READ))
-            io_write_n_io <= 1'b0;
-        else if (state == SI)
-            io_write_n_io <= 1'b1;
+        else if (clock_p_en)
+            if ((state == S1) && (transfer_type[dma_select] == `TRANSFER_TYPE_READ))
+                io_write_n_io <= 1'b0;
+            else if (state == SI)
+                io_write_n_io <= 1'b1;
+            else
+                io_write_n_io <= io_write_n_io;
         else
             io_write_n_io <= io_write_n_io;
     end
@@ -474,13 +506,16 @@ module KF8237_Timing_And_Control (
             io_write_n_out <= 1'b1;
         else if (master_clear)
             io_write_n_out <= 1'b1;
-        else if (state == S4)
-            io_write_n_out <= 1'b1;
-        else if (transfer_type[dma_select] == `TRANSFER_TYPE_READ)
-            if ((state == S2) && ((extended_write_selection) || (compressed_timing)))
-                io_write_n_out <= 1'b0;
-            else if (state == S3)
-                io_write_n_out <= 1'b0;
+        else if (clock_p_en)
+            if (state == S4)
+                io_write_n_out <= 1'b1;
+            else if (transfer_type[dma_select] == `TRANSFER_TYPE_READ)
+                if ((state == S2) && ((extended_write_selection) || (compressed_timing)))
+                    io_write_n_out <= 1'b0;
+                else if (state == S3)
+                    io_write_n_out <= 1'b0;
+                else
+                    io_write_n_out <= io_write_n_out;
             else
                 io_write_n_out <= io_write_n_out;
         else
@@ -488,20 +523,23 @@ module KF8237_Timing_And_Control (
     end
 
     //
-    // Memory Write Signal (NOTE:Posedge)
+    // Memory Write Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             memory_write_n <= 1'b1;
         else if (master_clear)
             memory_write_n <= 1'b1;
-        else if (state == S4)
-            memory_write_n <= 1'b1;
-        else if (transfer_type[dma_select] == `TRANSFER_TYPE_WRITE)
-            if ((state == S2) && ((extended_write_selection) || (compressed_timing)))
-                memory_write_n <= 1'b0;
-            else if (state == S3)
-                memory_write_n <= 1'b0;
+        else if (clock_p_en)
+            if (state == S4)
+                memory_write_n <= 1'b1;
+            else if (transfer_type[dma_select] == `TRANSFER_TYPE_WRITE)
+                if ((state == S2) && ((extended_write_selection) || (compressed_timing)))
+                    memory_write_n <= 1'b0;
+                else if (state == S3)
+                    memory_write_n <= 1'b0;
+                else
+                    memory_write_n <= memory_write_n;
             else
                 memory_write_n <= memory_write_n;
         else
@@ -511,32 +549,35 @@ module KF8237_Timing_And_Control (
     //
     // Update High Address Signal
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             reoutput_high_address <= 1'b0;
         else if (master_clear)
             reoutput_high_address <= 1'b0;
         else if (state == S2)
             reoutput_high_address <= 1'b0;
-        else if (next_word)
+        else if ((clock_n_en) && (next_word))
             reoutput_high_address <= update_high_address;
         else
             reoutput_high_address <= reoutput_high_address;
     end
 
     //
-    // Terminal Count Signal (NOTE:Posedge)
+    // Terminal Count Signal
     //
     always_ff @(posedge clock, posedge reset) begin
         if (reset)
             terminal_count <= 1'b0;
         else if (master_clear)
             terminal_count <= 1'b0;
-        else if (state == S4)
-            terminal_count <= 1'b0;
-        else if (next_word)
-            terminal_count <= underflow;
-        else 
+        else if (clock_p_en)
+            if (state == S4)
+                terminal_count <= 1'b0;
+            else if (next_s4)
+                terminal_count <= underflow;
+            else
+                terminal_count <= terminal_count;
+        else
             terminal_count <= terminal_count;
     end
 
@@ -545,49 +586,60 @@ module KF8237_Timing_And_Control (
     //
     // End Of Process Signal
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             external_end_of_process <= 1'b0;
         else if (master_clear)
             external_end_of_process <= 1'b0;
-        else if (state == SI)
-            external_end_of_process <= 1'b0;
-        else if ((next_state == S2) && (~end_of_process_n_in))
-            external_end_of_process <= 1'b1;
+        else if (clock_n_en)
+            if (state == SI)
+                external_end_of_process <= 1'b0;
+            else if ((next_state == S2) && (~end_of_process_n_in))
+                external_end_of_process <= 1'b1;
+            else
+                external_end_of_process <= external_end_of_process;
         else
             external_end_of_process <= external_end_of_process;
     end
 
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             end_of_process_internal <= 1'b0;
         else if (master_clear)
             end_of_process_internal <= 1'b0;
-        else if (next_state == S4)
-            end_of_process_internal <= terminal_count | external_end_of_process;
+        else if (clock_n_en)
+            if (next_state == S4)
+                end_of_process_internal <= terminal_count | external_end_of_process;
+            else
+                end_of_process_internal <= 1'b0;
         else
-            end_of_process_internal <= 1'b0;
+            end_of_process_internal <= end_of_process_internal;
     end
 
     //
     // Status Register
     //
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             prev_read_status_register <= 1'b0;
-        else
+        else if (clock_n_en)
             prev_read_status_register <= read_status_register;
+        else
+            prev_read_status_register <= prev_read_status_register;
     end
 
-    always_ff @(negedge clock, posedge reset) begin
+    always_ff @(posedge clock, posedge reset) begin
         if (reset)
             terminal_count_state <= 0;
         else if (master_clear)
             terminal_count_state <= 0;
-        else if (prev_read_status_register & ~read_status_register)
-            terminal_count_state <= 0;
-        else if (end_of_process_internal)
-            terminal_count_state <= terminal_count_state | dma_acknowledge_internal;
+        else if (clock_n_en)
+            if (prev_read_status_register & ~read_status_register)
+                terminal_count_state <= 0;
+            else if (end_of_process_internal)
+                terminal_count_state <= terminal_count_state | dma_acknowledge_internal;
+            else
+                terminal_count_state <= terminal_count_state;
         else
             terminal_count_state <= terminal_count_state;
     end

@@ -7,6 +7,8 @@
 
 module KF8237 (
     input   logic           clock,
+    input   logic           clock_p_en,
+    input   logic           clock_n_en,
     input   logic           reset,
     input   logic           chip_select_n,
     input   logic           ready,
@@ -102,6 +104,8 @@ module KF8237 (
 
     KF8237_Priority_Encoder u_Priority_Encoder (
         .clock                              (clock),
+        .clock_p_en                         (clock_p_en),
+        .clock_n_en                         (clock_n_en),
         .reset                              (reset),
 
         // Internal Bus
@@ -142,6 +146,8 @@ module KF8237 (
 
     KF8237_Address_And_Count_Registers u_Address_And_Count_Registers (
         .clock                              (clock),
+        .clock_p_en                         (clock_p_en),
+        .clock_n_en                         (clock_n_en),
         .reset                              (reset),
 
         // Internal Bus
@@ -179,6 +185,8 @@ module KF8237 (
 
     KF8237_Timing_And_Control u_Timing_And_Control (
         .clock                              (clock),
+        .clock_p_en                         (clock_p_en),
+        .clock_n_en                         (clock_n_en),
         .reset                              (reset),
 
         // Internal Bus
